@@ -18,20 +18,56 @@ import "takehome-vol-indicators/market"
 // Same streaming + warm-up requirements as IV Rank apply.
 type IVPercentile struct {
 	lookback int
-	// TODO(candidate): add whatever state you need.
+	window   []float64 // Holds the rolling ATM IV values
+	head     int       // Pointer for our rolling circular ring buffer
+	count    int       // Current number of elements inside the window
 }
 
 func NewIVPercentile(lookback int) *IVPercentile {
-	return &IVPercentile{lookback: lookback}
+	return &IVPercentile{
+		lookback: lookback,
+		window:   make([]float64, lookback),
+		head:     0,
+		count:    0,
+	}
 }
 
 func (p *IVPercentile) Name() string { return "IV_PERCENTILE" }
 
 func (p *IVPercentile) Update(s market.Snapshot) {
-	// TODO(candidate): record this bar's ATM IV (s.ATMIV) into your window.
+	if p.lookback <= 0 {
+		return
+	}
+
+	// Overwrite the oldest element in our circular ring buffer
+	p.window[p.head] = s.ATMIV
+	p.head = (p.head + 1) % p.lookback
+
+	// Increment elements tracking up to the maximum lookback capacity
+	if p.count < p.lookback {
+		p.count++
+	}
 }
 
 func (p *IVPercentile) Value() (float64, bool) {
-	// TODO(candidate): return (ivp, true) once warm; (0, false) until then.
-	return 0, false
+	// WARM-UP: Not ready until the window holds exactly `lookback` bars
+	if p.count < p.lookback {
+		return 0, false
+	}
+
+	// Retrieve the current bar's ATM IV (the one we just inserted)
+	currentIdx := (p.head - 1 + p.lookback) % p.lookback
+	currentIV := p.window[currentIdx]
+
+	// STRICT COMPARISON: Count only bars strictly less than currentIV
+	lessCount := 0
+	for i := 0; i < p.lookback; i++ {
+		if p.window[i] < currentIV {
+			lessCount++
+		}
+	}
+
+	// Calculate percentile using full lookback window as the denominator
+	ivp := 100.0 * float64(lessCount) / float64(p.lookback)
+	return ivp, true
 }
