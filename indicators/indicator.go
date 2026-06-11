@@ -32,6 +32,8 @@ func New(name string, lookback int) (Indicator, error) {
 		return NewIVRank(lookback), nil
 	case "IV_PERCENTILE":
 		return NewIVPercentile(lookback), nil
+	case "PCR":
+		return NewPCR(), nil // Note: PCR doesn't require a lookback window, it computes per-bar!
 	default:
 		return nil, fmt.Errorf("unknown indicator %q", name)
 	}
