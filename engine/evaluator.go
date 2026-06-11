@@ -123,7 +123,22 @@ func (e *Evaluator) evalPredicate(p spec.Predicate) bool {
 // While this returns (0, false), no predicate can fire and the example strategy
 // produces no trades.
 func (e *Evaluator) resolveOperand(op spec.Operand) (float64, bool) {
-	// TODO(candidate): replace this stub.
+	// Handle constant scalar literals
+	if op.Const != nil {
+		return *op.Const, true
+	}
+
+	// Handle indicator instances registered via the DSL
+	if op.Indicator != "" {
+		ind, exists := e.inds[op.Indicator]
+		if !exists {
+			// Fail-safe protection if an unexpected indicator name passes through
+			return 0, false
+		}
+		return ind.Value()
+	}
+
+	// Default fallback for unconfigured/empty operands
 	return 0, false
 }
 
