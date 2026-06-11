@@ -1,0 +1,28 @@
+{
+  "name": "short_vol_ivrank_pcr",
+  "indicators": [
+    {
+      "name": "IV_RANK",
+      "lookback": 160
+    },
+    {
+      "name": "PCR",
+      "lookback": 1
+    }
+  ],
+  "entry": {
+    "left": "IV_RANK",
+    "op": ">",
+    "right": 50.0,
+    "and": {
+      "left": "PCR",
+      "op": ">",
+      "right": 1.2
+    }
+  },
+  "exit": {
+    "left": "IV_RANK",
+    "op": "<",
+    "right": 30.0
+  }
+}
